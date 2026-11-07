@@ -12,7 +12,7 @@ A lightweight Minecraft proxy with its own API, plugin system, and built-in ViaV
 - Built-in ViaProxy — accepts clients from 1.7.2 to 26.3
 - Console commands, localization (en/ru), ANSI colors
 - Single fat JAR
-
+<meta name="google-site-verification" content="q5zFXE3TT-FAfjYYmM4r0LB0SCnkHs58ysRCDhA7xeY" />
 ## Requirements
 
 - Java 21+
