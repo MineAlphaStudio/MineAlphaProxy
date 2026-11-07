@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.minealphaproxy"
-version = "1.0.1-ALPHA"
+version = "1.0.2-ALPHA"
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
@@ -40,26 +40,6 @@ tasks {
     }
     withType<ProcessResources> { filteringCharset = "UTF-8" }
 
-    task("copyViaProxy") {
-        doLast {
-            val src = file("libs/ViaProxy.jar")
-            val dst = file("src/main/resources/viaproxy/ViaProxy.bin")
-            if (src.exists()) {
-                dst.parentFile.mkdirs()
-                src.copyTo(dst, overwrite = true)
-                println("Copied ViaProxy.jar as ViaProxy.bin (opaque)")
-            } else {
-                println("WARNING: libs/ViaProxy.jar not found")
-            }
-            // Удаляем старый .jar из ресурсов, если он там лежит
-            file("src/main/resources/viaproxy/ViaProxy.jar").delete()
-        }
-    }
-
-    processResources {
-        dependsOn("copyViaProxy")
-    }
-
     shadowJar {
         archiveBaseName.set("MineAlphaProxy")
         archiveClassifier.set("")
@@ -73,7 +53,6 @@ tasks {
         relocate("io.netty", "com.minealphaproxy.libs.netty")
         relocate("org.yaml.snakeyaml", "com.minealphaproxy.libs.snakeyaml")
         relocate("com.sun.jna", "com.minealphaproxy.libs.jna")
-        mergeServiceFiles()
     }
 
     build { dependsOn(shadowJar) }

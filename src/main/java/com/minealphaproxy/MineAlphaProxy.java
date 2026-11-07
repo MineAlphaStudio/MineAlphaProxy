@@ -18,7 +18,6 @@ import com.minealphaproxy.lang.Messages;
 import com.minealphaproxy.network.NetworkServer;
 import com.minealphaproxy.plugin.MineAlphaPluginLoader;
 import com.minealphaproxy.plugin.VelocityPluginManager;
-import com.minealphaproxy.compat.viaproxy.ViaProxyLauncher;
 import com.minealphaproxy.util.Logger;
 
 import java.io.IOException;
@@ -87,14 +86,14 @@ public final class MineAlphaProxy {
         logger.info("[{}] MOTD: {}", brand.displayName(),
                 Colors.toAnsi(config.resolveMotd()));
 
-        // ==== РЎРІРѕР№ MineAlpha API ====
+        // ==== Р РЋР Р†Р С•Р в„– MineAlpha API ====
         mineAlphaApi = new MineAlphaProxyImpl(
                 velocityProxyServer,
                 () -> config,
                 logger);
         MineAlphaApiHolder.set(mineAlphaApi);
 
-        // ==== РЎРІРѕРё РїР»Р°РіРёРЅС‹ ====
+        // ==== Р РЋР Р†Р С•Р С‘ Р С—Р В»Р В°Р С–Р С‘Р Р…РЎвЂ№ ====
         mineAlphaPluginLoader = new MineAlphaPluginLoader(
                 Path.of("MineAlphaPlugins"),
                 logger, mineAlphaApi);
@@ -113,8 +112,7 @@ public final class MineAlphaProxy {
         networkServer = new NetworkServer(config, logger, eventBus, velocityProxyServer);
         networkServer.start();
 
-        // ==== Запуск ViaProxy (встроенный) ====
-        ViaProxyLauncher.start(25576, config.bind.port, logger);
+        // ==== Р—Р°РїСѓСЃРє ViaProxy (РІСЃС‚СЂРѕРµРЅРЅС‹Р№) ====
     }
 
     private void registerBuiltins(CommandManager cm) {

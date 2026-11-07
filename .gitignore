@@ -12,13 +12,12 @@ config.yml
 lang/
 MineAlphaPlugins/
 VelocityPlugins/
-BungeePlugins/
 _disabled/
 logs/
 *.log
 
 # External binaries
-libs/
+libs/ViaProxy.jar
 src/main/resources/viaproxy/ViaProxy.bin
 
 # IDE
@@ -31,4 +30,3 @@ Thumbs.db
 .DS_Store
 
 *.class
-*.jar

@@ -8,6 +8,6 @@ $args = @(
     "-Dstdout.encoding=UTF-8",
     "-Dstderr.encoding=UTF-8",
     "-jar",
-    "build\libs\MineAlphaProxy-1.0.1-ALPHA.jar"
+    "build\libs\MineAlphaProxy-1.0.2-ALPHA.jar"
 )
 & java $args

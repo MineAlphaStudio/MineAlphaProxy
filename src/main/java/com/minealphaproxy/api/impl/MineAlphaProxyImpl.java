@@ -113,4 +113,11 @@ public final class MineAlphaProxyImpl implements MineAlphaProxy {
     @Override public void broadcastMessage(Component message) {
         for (Player p : vserver.getAllPlayers()) p.sendMessage(message);
     }
-}
+
+    public void switchServer(MineAlphaPlayerImpl player, String serverName) {
+        var vplayer = player.velocity();
+        if (!(vplayer instanceof com.minealphaproxy.compat.velocity.VelocityPlayer vp)) return;
+        var channel = vp.channel();
+        if (channel == null || !channel.isActive()) return;
+        com.minealphaproxy.network.ServerSwitcher.switchTo(channel, player.getUniqueId(), serverName, configSupplier.get(), logger);
+    }}

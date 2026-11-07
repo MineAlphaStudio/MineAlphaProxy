@@ -11,18 +11,15 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 public final class NetworkServer {
-
     private final ProxyConfig config;
     private final Logger logger;
     private final EventBus eventBus;
     private final VelocityProxyServer velocityProxyServer;
-
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
 
-    public NetworkServer(ProxyConfig config, Logger logger,
-                         EventBus eventBus, VelocityProxyServer velocityProxyServer) {
+    public NetworkServer(ProxyConfig config, Logger logger, EventBus eventBus, VelocityProxyServer velocityProxyServer) {
         this.config = config;
         this.logger = logger;
         this.eventBus = eventBus;
@@ -32,7 +29,6 @@ public final class NetworkServer {
     public void start() throws InterruptedException {
         bossGroup = new NioEventLoopGroup(1);
         workerGroup = new NioEventLoopGroup();
-
         ServerBootstrap b = new ServerBootstrap();
         b.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
@@ -42,30 +38,20 @@ public final class NetworkServer {
                     @Override
                     protected void initChannel(SocketChannel ch) {
                         ch.pipeline()
-                                .addLast("frame-decoder",
-                                        new MinecraftVarintFrameDecoder())
-                                .addLast("frame-encoder",
-                                        new MinecraftFrameEncoder())
-                                .addLast("handshake",
-                                        new HandshakeHandler(config, logger,
-                                                eventBus, velocityProxyServer))
-                                .addLast("error-handler",
-                                        new ChannelInboundHandlerAdapter() {
+                                .addLast("frame-decoder", new MinecraftVarintFrameDecoder())
+                                .addLast("frame-encoder", new MinecraftFrameEncoder())
+                                .addLast("handshake", new HandshakeHandler(config, logger, eventBus, velocityProxyServer))
+                                .addLast("error-handler", new ChannelInboundHandlerAdapter() {
                                     @Override
-                                    public void exceptionCaught(ChannelHandlerContext ctx,
-                                                                Throwable cause) {
-                                        logger.debug("Connection error ({}): {}",
-                                                ctx.channel().remoteAddress(),
-                                                cause.getMessage());
+                                    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+                                        logger.debug("Connection error ({}): {}", ctx.channel().remoteAddress(), cause.getMessage());
                                         ctx.close();
                                     }
                                 });
                     }
                 });
-
         serverChannel = b.bind(config.bind.host, config.bind.port).sync().channel();
-        logger.info("Network server bound to {}:{}",
-                config.bind.host, config.bind.port);
+        logger.info("Network server bound to {}:{}", config.bind.host, config.bind.port);
     }
 
     public void stop() {

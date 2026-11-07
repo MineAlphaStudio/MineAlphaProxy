@@ -15,21 +15,18 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class LoginStartHandler extends SimpleChannelInboundHandler<ByteBuf> {
-
     public static final AttributeKey<String> USERNAME = AttributeKey.valueOf("username");
     public static final AttributeKey<byte[]> VERIFY_TOKEN = AttributeKey.valueOf("verify-token");
     public static final AttributeKey<byte[]> LOGIN_START_EXTRA = AttributeKey.valueOf("login-start-extra");
     public static final AttributeKey<UUID> CLIENT_UUID = AttributeKey.valueOf("client-uuid");
-    public static final AttributeKey<PlayerProfile.ProfileKey> CLIENT_KEY =
-            AttributeKey.valueOf("client-key");
+    public static final AttributeKey<PlayerProfile.ProfileKey> CLIENT_KEY = AttributeKey.valueOf("client-key");
 
     private final ProxyConfig config;
     private final Logger logger;
     private final EventBus eventBus;
     private final VelocityProxyServer velocityProxyServer;
 
-    public LoginStartHandler(ProxyConfig config, Logger logger,
-                             EventBus eventBus, VelocityProxyServer velocityProxyServer) {
+    public LoginStartHandler(ProxyConfig config, Logger logger, EventBus eventBus, VelocityProxyServer velocityProxyServer) {
         this.config = config;
         this.logger = logger;
         this.eventBus = eventBus;
@@ -45,26 +42,31 @@ public final class LoginStartHandler extends SimpleChannelInboundHandler<ByteBuf
         byte[] extra = new byte[buf.readableBytes()];
         buf.readBytes(extra);
 
-        logger.info("Login Start extra hex: {}", toHex(extra));
+        UUID clientUuid = extractClientUuid(extra);
+        if (clientUuid != null) ctx.channel().attr(CLIENT_UUID).set(clientUuid);
+
+        PlayerProfile.ProfileKey clientKey = extractProfileKey(extra);
+        if (clientKey != null) ctx.channel().attr(CLIENT_KEY).set(clientKey);
 
         ctx.channel().attr(USERNAME).set(username);
         ctx.channel().attr(LOGIN_START_EXTRA).set(extra);
 
-        UUID clientUuid = extractClientUuid(extra);
-        if (clientUuid != null) {
-            ctx.channel().attr(CLIENT_UUID).set(clientUuid);
+        // ГЛАВНОЕ ИСПРАВЛЕНИЕ: Выбираем UUID в зависимости от режима
+        UUID finalUuid;
+        if (config.bind.onlineMode) {
+            // В онлайн-режиме используем UUID от клиента (позже он заменится на Mojang-UUID)
+            finalUuid = clientUuid != null ? clientUuid : VelocityForwarding.offlineUuid(username);
+        } else {
+            // В ОФЛАЙН-РЕЖИМЕ всегда генерируем стандартный OfflinePlayer:<ник>,
+            // чтобы UUID совпадал с Velocity и BungeeCord.
+            finalUuid = VelocityForwarding.offlineUuid(username);
         }
 
-        PlayerProfile.ProfileKey clientKey = extractProfileKey(extra);
-        if (clientKey != null) {
-            ctx.channel().attr(CLIENT_KEY).set(clientKey);
-        }
+        // Проверяем, есть ли ожидающий сервер для этого UUID
+        String targetServer = PendingSwitches.take(finalUuid);
+        if (targetServer == null) targetServer = config.defaultServer;
 
-        logger.info("Login Start: {} uuid={} key={} extra={} bytes",
-                username,
-                clientUuid != null ? clientUuid : "none",
-                clientKey != null ? "present" : "none",
-                extra.length);
+        logger.info("Login Start: {} (uuid={}). Routing to '{}'", username, finalUuid, targetServer);
 
         if (config.bind.onlineMode) {
             byte[] verifyToken = new byte[4];
@@ -72,15 +74,9 @@ public final class LoginStartHandler extends SimpleChannelInboundHandler<ByteBuf
             ctx.channel().attr(VERIFY_TOKEN).set(verifyToken);
 
             sendEncryptionRequest(ctx, verifyToken);
-            ctx.pipeline().replace(this, "encryption-response",
-                    new EncryptionResponseHandler(config, logger,
-                            eventBus, velocityProxyServer));
+            ctx.pipeline().replace(this, "encryption-response", new EncryptionResponseHandler(config, logger, eventBus, velocityProxyServer, targetServer));
         } else {
-            UUID uuid = clientUuid != null
-                    ? clientUuid
-                    : VelocityForwarding.offlineUuid(username);
-            BackendLoginFlow.connect(ctx, config, logger,
-                    username, uuid, List.of(), eventBus, velocityProxyServer);
+            BackendLoginFlow.connect(ctx, config, logger, username, finalUuid, List.of(), targetServer, eventBus, velocityProxyServer);
         }
     }
 
@@ -106,14 +102,11 @@ public final class LoginStartHandler extends SimpleChannelInboundHandler<ByteBuf
             buf.readBytes(sig);
             buf.release();
             return new PlayerProfile.ProfileKey(expire, keyBytes, sig);
-        } catch (Exception e) {
-            return null;
-        }
+        } catch (Exception e) { return null; }
     }
 
     private void sendEncryptionRequest(ChannelHandlerContext ctx, byte[] verifyToken) {
         byte[] publicKey = EncryptionUtil.publicKey().getEncoded();
-
         ByteBuf out = ctx.alloc().buffer();
         VarInts.writeVarInt(out, 0x01);
         VarInts.writeString(out, "");
@@ -123,17 +116,5 @@ public final class LoginStartHandler extends SimpleChannelInboundHandler<ByteBuf
         out.writeBytes(verifyToken);
         out.writeBoolean(true);
         ctx.writeAndFlush(out);
-    }
-
-    private static String toHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) sb.append(String.format("%02x", b));
-        return sb.toString();
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        logger.debug("Login Start error: {}", cause.getMessage());
-        ctx.close();
     }
 }

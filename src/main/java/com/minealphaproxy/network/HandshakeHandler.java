@@ -10,19 +10,15 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.AttributeKey;
 
 public final class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
-
-    public static final AttributeKey<Integer> PROTOCOL_VERSION =
-            AttributeKey.valueOf("protocol-version");
-    public static final AttributeKey<String> SERVER_ADDRESS =
-            AttributeKey.valueOf("server-address");
+    public static final AttributeKey<Integer> PROTOCOL_VERSION = AttributeKey.valueOf("protocol-version");
+    public static final AttributeKey<String> SERVER_ADDRESS = AttributeKey.valueOf("server-address");
 
     private final ProxyConfig config;
     private final Logger logger;
     private final EventBus eventBus;
     private final VelocityProxyServer velocityProxyServer;
 
-    public HandshakeHandler(ProxyConfig config, Logger logger,
-                            EventBus eventBus, VelocityProxyServer velocityProxyServer) {
+    public HandshakeHandler(ProxyConfig config, Logger logger, EventBus eventBus, VelocityProxyServer velocityProxyServer) {
         this.config = config;
         this.logger = logger;
         this.eventBus = eventBus;
@@ -42,23 +38,12 @@ public final class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf>
         ctx.channel().attr(PROTOCOL_VERSION).set(protocolVersion);
         ctx.channel().attr(SERVER_ADDRESS).set(serverAddress);
 
-        logger.debug("Handshake: protocol={}, address={}, port={}, nextState={}",
-                protocolVersion, serverAddress, serverPort, nextState);
-
         if (nextState == 1) {
-            ctx.pipeline().replace(this, "status",
-                    new StatusHandler(config, logger));
-        } else if (nextState == 2) {
-            ctx.pipeline().replace(this, "login",
-                    new LoginStartHandler(config, logger, eventBus, velocityProxyServer));
+            ctx.pipeline().replace(this, "status", new StatusHandler(config, logger));
+        } else if (nextState == 2 || nextState == 3) { // 3 = Transfer
+            ctx.pipeline().replace(this, "login", new LoginStartHandler(config, logger, eventBus, velocityProxyServer));
         } else {
             ctx.close();
         }
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        logger.debug("Handshake error: {}", cause.getMessage());
-        ctx.close();
     }
 }

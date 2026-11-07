@@ -53,4 +53,10 @@ public final class MineAlphaPlayerImpl implements MineAlphaPlayer {
     public boolean hasPermission(String permission) {
         return vplayer.hasPermission(permission);
     }
+
+    @Override
+    public void connectToServer(String serverName) {
+        MineAlphaProxyImpl api = MineAlphaApiHolder.get();
+        if (api != null) api.switchServer(this, serverName);
+    }
 }

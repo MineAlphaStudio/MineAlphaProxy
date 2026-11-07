@@ -14,9 +14,6 @@ import io.netty.util.ReferenceCountUtil;
 
 public final class PacketRelayHandler extends ChannelInboundHandlerAdapter {
 
-    private static final int SERVERBOUND_CHAT_COMMAND = 0x04;
-    private static final int SERVERBOUND_CHAT_MESSAGE = 0x05;
-
     private final Channel target;
     private final boolean interceptCommands;
     private final VelocityCommandManager commandManager;
@@ -45,24 +42,26 @@ public final class PacketRelayHandler extends ChannelInboundHandlerAdapter {
             try {
                 int packetId = VarInts.readVarInt(buf);
 
-                if (packetId == SERVERBOUND_CHAT_COMMAND) {
+                // ID команд для 1.19+ - 0x04, для 1.20.5+ - 0x05, для 26.3 - 0x09
+                // Мы ловим 0x04 и 0x09 для совместимости
+                if (packetId == 0x04 || packetId == 0x05 || packetId == 0x09) {
                     String command = VarInts.readString(buf);
                     buf.resetReaderIndex();
 
-                    // 1. MineAlpha-команды (alert, mlist, ...)
+                    // 1. MineAlpha команды
                     if (MineAlphaApiHolder.isAvailable()) {
                         var api = MineAlphaApiHolder.get();
-                        var source = new PlayerSource(api.getPlayer(player.getUsername()).orElse(null) != null
-                                ? api.getPlayer(player.getUsername()).get()
-                                : null);
-                        if (source.asPlayer().isPresent() &&
-                                api.getCommandManager().dispatch(source, command)) {
-                            buf.release();
-                            return;
+                        var found = api.getPlayer(player.getUsername());
+                        if (found.isPresent()) {
+                            var source = new PlayerSource(found.get());
+                            if (api.getCommandManager().dispatch(source, command)) {
+                                buf.release();
+                                return;
+                            }
                         }
                     }
 
-                    // 2. Velocity-команды (/viaver, ...)
+                    // 2. Velocity команды
                     if (commandManager != null) {
                         var vSource = new PlayerCommandSource(player);
                         if (commandManager.execute(vSource, command)) {
@@ -71,7 +70,7 @@ public final class PacketRelayHandler extends ChannelInboundHandlerAdapter {
                         }
                     }
 
-                    // 3. Не наша — пропускаем на бэкенд
+                    // 3. Отправляем на бэкенд
                     if (target.isActive()) target.writeAndFlush(buf);
                     else buf.release();
                     return;

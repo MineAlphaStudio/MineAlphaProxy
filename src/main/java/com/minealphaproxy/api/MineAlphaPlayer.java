@@ -18,4 +18,6 @@ public interface MineAlphaPlayer {
 
     String getCurrentServer();
     boolean hasPermission(String permission);
+
+    void connectToServer(String serverName);
 }
