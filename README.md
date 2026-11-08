@@ -2,6 +2,9 @@
 
 A lightweight Minecraft proxy with its own API, plugin system, and built-in ViaVersion support.
 
+# ⚠️ **PROJECT STATUS: ALPHA**
+ This project is under active development. Core features (Chat, Server Switching, Auth) work, but the API and configuration formats may change. **Do not use on public production servers yet.** Feedback and contributions are welcome!
+
 ## Features
 
 - Own Netty-based proxy core (Handshake, Status, Login, Play)
@@ -12,7 +15,6 @@ A lightweight Minecraft proxy with its own API, plugin system, and built-in ViaV
 - Built-in ViaProxy — accepts clients from 1.7.2 to 26.3
 - Console commands, localization (en/ru), ANSI colors
 - Single fat JAR
-<meta name="google-site-verification" content="q5zFXE3TT-FAfjYYmM4r0LB0SCnkHs58ysRCDhA7xeY" />
 ## Requirements
 
 - Java 21+
